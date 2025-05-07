@@ -1,0 +1,6 @@
+env: "Dev" #should be updated from CSV
+cluster: A #should be updated from CSV
+proxyName: TEMPLATE() #should be replaced case sensitive with function input
+proxyPath: /template/1 #should be replaced case sensitive with function input
+url: "abc.def.com" #should be updated from CSV
+proxyUrl: "aa.com" #should be updated from function param

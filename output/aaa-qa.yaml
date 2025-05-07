@@ -1,0 +1,7 @@
+env: "QA" #should be updated from CSV
+cluster: B #should be updated from CSV
+proxyName: aaa #should be replaced case sensitive with function input
+proxyPath: /aaa/1 #should be replaced case sensitive with function input
+url: "cc.dd" #should be updated from CSV
+proxyUrl: "aaa.com" #should be updated from function param
+
