@@ -1,6 +1,10 @@
-env: "Dev" #should be updated from CSV
-cluster: A #should be updated from CSV
-proxyName: TEMPLATE() #should be replaced case sensitive with function input
-proxyPath: /template/1 #should be replaced case sensitive with function input
-url: "abc.def.com" #should be updated from CSV
-proxyUrl: "aa.com" #should be updated from function param
+env_name: "Dev"
+api_env: dev
+cluster: FromEnvironmentCsv
+proxyName: TEMPLATE()
+proxyPath: /template/1
+dns_local: FromEnvironmentCsv.abc.com
+impl:
+  - host: "a1.b.c"
+  - host: "a2.b.c"
+  - host: "a3.b.c"

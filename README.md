@@ -18,7 +18,14 @@ The script:
 ## Usage
 
 1. Update template.yaml, environments.csv, and proxies.csv as needed.
-2. Run the script:
+
+2. Install Powershell module (run this once per user)
+
+```powershell
+Install-Module -Name powershell-yaml -Scope CurrentUser
+```
+
+3. Run the script:
 
 ```powershell
 .\generate.ps1

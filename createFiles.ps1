@@ -1,69 +1,102 @@
+## Script to generate YAML files from a template and CSV data
+## Run this script in PowerShell
+## Ensure you have the 'powershell-yaml' module installed:
+## Install-Module -Name powershell-yaml -Scope CurrentUser
+
 # Constants
 $templateFile = "template.yaml"
-$csvFile = "environments.csv"
+$environmentsCsv = "environments.csv"
+$proxiesCsv = "proxies.csv"
 $outputFolder = "output"
 
-# Clean up output folder before generating new files
+# Load YAML module
+Import-Module powershell-yaml
+
+# Read templates content once
+$templateRawContent = Get-Content $templateFile -Raw
+
+$envRows = Import-Csv $environmentsCsv
+
+$proxies = Import-Csv $proxiesCsv
+
+# Ensure clean output folder
 if (Test-Path $outputFolder) {
     Get-ChildItem $outputFolder -File | Remove-Item -Force
 } else {
     New-Item -ItemType Directory -Path $outputFolder | Out-Null
 }
 
-function Update-YamlTemplatePlaceholders {
+# -- Utility Functions --
+
+function Update-TemplateTokens {
     param (
         [string]$content,
         [string]$value
     )
-
-    # Replace only exact case-sensitive "TEMPLATE" with UPPERCASE
     $content = [regex]::Replace($content, '\bTEMPLATE\b', { $value.ToUpper() }, 'None')
-
-    # Replace only exact case-sensitive "template" with lowercase
     $content = [regex]::Replace($content, '\btemplate\b', { $value.ToLower() }, 'None')
-
     return $content
 }
 
-function Generate-YamlFiles {
+function Update-YamlFromCsvRow {
+    param (
+        [hashtable]$yaml,
+        [psobject]$row
+    )
+    foreach ($col in $row.PSObject.Properties) {
+        if ($col.Name -ne 'fileSuffix') {
+            $yaml[$col.Name] = $col.Value
+        }
+    }
+    return $yaml
+}
+
+# replace the second impl host with the new URL from the CSV proxies file
+#impl:
+#- host: a1.b.c
+#- host: a2.b.c <-- this one
+function Update-SecondImplHost {
+    param (
+        [hashtable]$yaml,
+        [string]$newUrl
+    )
+    if ($yaml.impl.Count -ge 2) {
+        $yaml.impl[1].host = $newUrl
+    }
+    return $yaml
+}
+
+function Save-YamlToFile {
+    param (
+        [hashtable]$yaml,
+        [string]$proxyName,
+        [string]$fileSuffix
+    )
+    $yamlText = ConvertTo-Yaml $yaml
+    $yamlText = Update-TemplateTokens -content $yamlText -value $proxyName
+
+    $filePath = Join-Path $outputFolder "$proxyName$fileSuffix.yaml"
+    Set-Content -Path $filePath -Value $yamlText
+    Write-Host "Created: $filePath"
+}
+
+# -- Main Generator Function --
+
+function New-YamlFiles {
     param (
         [string]$proxyName,
         [string]$proxyUrl
     )
 
-    $csvData = Import-Csv $csvFile
-
-    foreach ($row in $csvData) {
-        $fileSuffix = $row.fileSuffix
-        $env = $row.env
-        $cluster = $row.cluster
-        $url = $row.url
-
-        $content = Get-Content $templateFile -Raw
-
-        # Replace CSV and function parameters
-        $content = $content -replace 'env:\s*".*?"', "env: `"$env`""
-        $content = $content -replace 'cluster:\s*\w+', "cluster: $cluster"
-        $content = $content -replace 'url:\s*".*?"', "url: `"$url`""
-        $content = $content -replace 'proxyUrl:\s*".*?"', "proxyUrl: `"$proxyUrl`""
-
-        # Replace all 'TEMPLATE' and 'template' in content
-        $content = Update-YamlTemplatePlaceholders -content $content -value $proxyName
-
-        $outputFile = Join-Path $outputFolder "$proxyName$fileSuffix.yaml"
-        Set-Content -Path $outputFile -Value $content
-        Write-Host "Created: $outputFile"
+    foreach ($row in $envRows) {
+        $yaml = ConvertFrom-Yaml $templateRawContent
+        $yaml = Update-YamlFromCsvRow -yaml $yaml -row $row
+        $yaml = Update-SecondImplHost -yaml $yaml -newUrl $proxyUrl
+        Save-YamlToFile -yaml $yaml -proxyName $proxyName -fileSuffix $row.fileSuffix
     }
 }
 
-# # Example usage
-# Generate-YamlFiles -proxyName "aaa" -proxyUrl "aaa.com"
-# Read the proxy list
-$proxyList = Import-Csv "proxies.csv"
-
-foreach ($proxy in $proxyList) {
-    $proxyName = $proxy.proxyName
-    $proxyUrl = $proxy.proxyUrl
-
-    Generate-YamlFiles -proxyName $proxyName -proxyUrl $proxyUrl
+# -- Run for all proxies --
+foreach ($proxy in $proxies) {
+    New-YamlFiles -proxyName $proxy.proxyName -proxyUrl $proxy.proxyUrl
 }

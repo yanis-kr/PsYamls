@@ -1,7 +1,11 @@
-env: "QA" #should be updated from CSV
-cluster: B #should be updated from CSV
-proxyName: BBB() #should be replaced case sensitive with function input
-proxyPath: /bbb/1 #should be replaced case sensitive with function input
-url: "cc.dd" #should be updated from CSV
-proxyUrl: "bbb.net" #should be updated from function param
+env_name: QA
+proxyPath: /bbb/1
+proxyName: BBB()
+dns_local: cc.dd
+api_env: QA
+cluster: B
+impl:
+- host: a1.b.c
+- host: bbb.net
+- host: a3.b.c
 
